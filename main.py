@@ -50,7 +50,6 @@ for epoch in range(opt.epoch):
         loss_.append(loss)
     loss = np.mean(loss_)
     con = np.mean(con)
-    print(con)
     slices = test_data.generate_batch(model.batch_size)
     print('start predicting: ', datetime.datetime.now())
     test_loss = []
