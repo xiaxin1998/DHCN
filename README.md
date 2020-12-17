@@ -1,4 +1,6 @@
 # DHCN
+****Currently there are some problems in the codes. We are fixing the problems and the corrected codes and paper will be updated soon.
+
 Codes for AAAI 2021 paper 'Self-Supervised Hypergraph Convolutional Networks for Session-based Recommendation'.
 
 The paper is available in arXiv: http://arxiv.org/abs/2012.06852
