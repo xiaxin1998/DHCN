@@ -6,4 +6,3 @@ The paper is available at Dropbox: https://www.dropbox.com/s/fvr8vefbocg2d7a/AAA
 
 Environments: Python3, Pytorch 1.6.0
 
-The datasets are available here: https://github.com/CCIIPLab/GCE-GNN/tree/master/datasets
