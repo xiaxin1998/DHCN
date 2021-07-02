@@ -3,7 +3,7 @@
 Codes for AAAI 2021 paper 'Self-Supervised Hypergraph Convolutional Networks for Session-based Recommendation'.
 
 ### Please note that the default link of our paper in google scholar links to an obsolete version with incorrect experimental results. 
-The latest version of our paper is available at: 
+### The latest version of our paper is available at: 
 https://ojs.aaai.org/index.php/AAAI/article/view/16578
 
 Environments: Python3, Pytorch 1.6.0
