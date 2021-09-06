@@ -10,3 +10,4 @@ Environments: Python3, Pytorch 1.6.0
 
 Datasets are available at Dropbox: https://www.dropbox.com/sh/j12um64gsig5wqk/AAD4Vov6hUGwbLoVxh3wASg_a?dl=0 The datasets are already preprocessed and encoded by pickle.
 
+For Diginetica, the best beta value is 0.01; for Tmall, the best beta value is 0.02.
