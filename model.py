@@ -47,7 +47,8 @@ class HyperConv(Module):
         for i in range(self.layers):
             item_embeddings = torch.sparse.mm(trans_to_cuda(adjacency), item_embeddings)
             final.append(item_embeddings)
-        item_embeddings = np.sum(final, 0)
+        final1 = trans_to_cuda(torch.tensor([item.cpu().detach().numpy() for item in final]))
+        item_embeddings = torch.sum(final1, 0)
         return item_embeddings
 
 
