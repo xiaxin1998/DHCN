@@ -72,7 +72,8 @@ class LineConv(Module):
         for i in range(self.layers):
             session_emb_lgcn = torch.mm(DA, session_emb_lgcn)
             session.append(session_emb_lgcn)
-        session_emb_lgcn = np.sum(session, 0)
+        session1 = trans_to_cuda(torch.tensor([item.cpu().detach().numpy() for item in session]))
+        session_emb_lgcn = torch.sum(session1, 0)
         return session_emb_lgcn
 
 
