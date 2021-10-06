@@ -47,8 +47,9 @@ class HyperConv(Module):
         for i in range(self.layers):
             item_embeddings = torch.sparse.mm(trans_to_cuda(adjacency), item_embeddings)
             final.append(item_embeddings)
-        final1 = trans_to_cuda(torch.tensor([item.cpu().detach().numpy() for item in final]))
-        item_embeddings = torch.sum(final1, 0)
+      #  final1 = trans_to_cuda(torch.tensor([item.cpu().detach().numpy() for item in final]))
+      #  item_embeddings = torch.sum(final1, 0)
+        item_embeddings = np.sum(final, 0)
         return item_embeddings
 
 
@@ -72,8 +73,9 @@ class LineConv(Module):
         for i in range(self.layers):
             session_emb_lgcn = torch.mm(DA, session_emb_lgcn)
             session.append(session_emb_lgcn)
-        session1 = trans_to_cuda(torch.tensor([item.cpu().detach().numpy() for item in session]))
-        session_emb_lgcn = torch.sum(session1, 0)
+        #session1 = trans_to_cuda(torch.tensor([item.cpu().detach().numpy() for item in session]))
+        #session_emb_lgcn = torch.sum(session1, 0)
+        session_emb_lgcn = torch.sum(session, 0)
         return session_emb_lgcn
 
 
