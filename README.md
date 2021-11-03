@@ -12,4 +12,4 @@ Datasets are available at Dropbox: https://www.dropbox.com/sh/j12um64gsig5wqk/AA
 
 For Diginetica, the best beta value is 0.01; for Tmall, the best beta value is 0.02.
 
-Some people may encounter a cudaError in line 50 or line 74 when running our codes if your numpy and pytorch version is different with ours. Currently, we haven't found the solution to resolve the version problem. If you have this problem, please try to change numpy and pytorch version same with ours.
+Some people may encounter a cudaError in line 50 or line 74 when running our codes if your numpy and pytorch version are different with ours. Currently, we haven't found the solution to resolve the version problem. If you have this problem, please try to change numpy and pytorch version same with ours.
