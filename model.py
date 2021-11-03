@@ -29,19 +29,6 @@ class HyperConv(Module):
         self.dataset = dataset
 
     def forward(self, adjacency, embedding):
-        values = adjacency.data
-        indices = np.vstack((adjacency.row, adjacency.col))
-        if self.dataset == 'Nowplaying':
-            index_fliter = (values < 0.05).nonzero()
-            values = np.delete(values, index_fliter)
-            indices1 = np.delete(indices[0], index_fliter)
-            indices2 = np.delete(indices[1], index_fliter)
-            indices = [indices1, indices2]
-        i = torch.LongTensor(indices)
-        v = torch.FloatTensor(values)
-
-        shape = adjacency.shape
-        adjacency = torch.sparse.FloatTensor(i, v, torch.Size(shape))
         item_embeddings = embedding
         item_embedding_layer0 = item_embeddings
         final = [item_embedding_layer0]
@@ -90,6 +77,19 @@ class DHCN(Module):
         self.lr = lr
         self.layers = layers
         self.beta = beta
+
+        values = adjacency.data
+        indices = np.vstack((adjacency.row, adjacency.col))
+        if dataset == 'Nowplaying':
+            index_fliter = (values < 0.05).nonzero()
+            values = np.delete(values, index_fliter)
+            indices1 = np.delete(indices[0], index_fliter)
+            indices2 = np.delete(indices[1], index_fliter)
+            indices = [indices1, indices2]
+        i = torch.LongTensor(indices)
+        v = torch.FloatTensor(values)
+        shape = adjacency.shape
+        adjacency = torch.sparse.FloatTensor(i, v, torch.Size(shape))
         self.adjacency = adjacency
         self.embedding = nn.Embedding(self.n_node, self.emb_size)
         self.pos_embedding = nn.Embedding(200, self.emb_size)
