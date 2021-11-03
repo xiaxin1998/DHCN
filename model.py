@@ -8,6 +8,7 @@ import torch.nn.functional as F
 import torch.sparse
 from scipy.sparse import coo
 import time
+from numba import jit
 
 def trans_to_cuda(variable):
     if torch.cuda.is_available():
@@ -75,7 +76,7 @@ class LineConv(Module):
             session.append(session_emb_lgcn)
         #session1 = trans_to_cuda(torch.tensor([item.cpu().detach().numpy() for item in session]))
         #session_emb_lgcn = torch.sum(session1, 0)
-        session_emb_lgcn = torch.sum(session, 0)
+        session_emb_lgcn = np.sum(session, 0)
         return session_emb_lgcn
 
 
@@ -157,6 +158,38 @@ class DHCN(Module):
         con_loss = self.SSL(sess_emb_hgnn, session_emb_lg)
         return item_embeddings_hg, sess_emb_hgnn, self.beta*con_loss
 
+@jit(nopython=True)
+def find_k_largest(K, candidates):
+    n_candidates = []
+    for iid,score in enumerate(candidates[:K]):
+        n_candidates.append((iid, score))
+    n_candidates.sort(key=lambda d: d[1], reverse=True)
+    k_largest_scores = [item[1] for item in n_candidates]
+    ids = [item[0] for item in n_candidates]
+    # find the N biggest scores
+    for iid,score in enumerate(candidates):
+        ind = K
+        l = 0
+        r = K - 1
+        if k_largest_scores[r] < score:
+            while r >= l:
+                mid = int((r - l) / 2) + l
+                if k_largest_scores[mid] >= score:
+                    l = mid + 1
+                elif k_largest_scores[mid] < score:
+                    r = mid - 1
+                if r < l:
+                    ind = r
+                    break
+        # move the items backwards
+        if ind < K - 2:
+            k_largest_scores[ind + 2:] = k_largest_scores[ind + 1:-1]
+            ids[ind + 2:] = ids[ind + 1:-1]
+        if ind < K - 1:
+            k_largest_scores[ind + 1] = score
+            ids[ind + 1] = iid
+    return ids#,k_largest_scores
+
 
 def forward(model, i, data):
     tar, session_len, session_item, reversed_sess_item, mask = data.get_slice(i)
@@ -200,7 +233,10 @@ def train_test(model, train_data, test_data):
     for i in slices:
         tar, scores, con_loss = forward(model, i, test_data)
         scores = trans_to_cpu(scores).detach().numpy()
-        index = np.argsort(-scores, 1)
+        index = []
+        for idd in range(model.batch_size):
+            index.append(find_k_largest(20, scores[idd]))
+        index = np.array(index)
         tar = trans_to_cpu(tar).detach().numpy()
         for K in top_K:
             for prediction, target in zip(index[:, :K], tar):
