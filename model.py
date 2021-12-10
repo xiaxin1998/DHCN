@@ -37,7 +37,7 @@ class HyperConv(Module):
             final.append(item_embeddings)
       #  final1 = trans_to_cuda(torch.tensor([item.cpu().detach().numpy() for item in final]))
       #  item_embeddings = torch.sum(final1, 0)
-        item_embeddings = np.sum(final, 0)
+        item_embeddings = np.sum(final, 0) / (self.layers+1)
         return item_embeddings
 
 
@@ -63,7 +63,7 @@ class LineConv(Module):
             session.append(session_emb_lgcn)
         #session1 = trans_to_cuda(torch.tensor([item.cpu().detach().numpy() for item in session]))
         #session_emb_lgcn = torch.sum(session1, 0)
-        session_emb_lgcn = np.sum(session, 0)
+        session_emb_lgcn = np.sum(session, 0)/ (self.layers+1)
         return session_emb_lgcn
 
 
@@ -77,6 +77,7 @@ class DHCN(Module):
         self.lr = lr
         self.layers = layers
         self.beta = beta
+        self.dataset = dataset
 
         values = adjacency.data
         indices = np.vstack((adjacency.row, adjacency.col))
@@ -95,7 +96,7 @@ class DHCN(Module):
         self.pos_embedding = nn.Embedding(200, self.emb_size)
         self.HyperGraph = HyperConv(self.layers,dataset)
         self.LineGraph = LineConv(self.layers, self.batch_size)
-        self.w_1 = nn.Parameter(torch.Tensor(2 * self.emb_size, self.emb_size))
+        self.w_1 = nn.Linear(2 * self.emb_size, self.emb_size)
         self.w_2 = nn.Parameter(torch.Tensor(self.emb_size, 1))
         self.glu1 = nn.Linear(self.emb_size, self.emb_size)
         self.glu2 = nn.Linear(self.emb_size, self.emb_size, bias=False)
@@ -125,7 +126,31 @@ class DHCN(Module):
         pos_emb = pos_emb.unsqueeze(0).repeat(self.batch_size, 1, 1)
 
         hs = hs.unsqueeze(-2).repeat(1, len, 1)
-        nh = torch.matmul(torch.cat([pos_emb, seq_h], -1), self.w_1)
+        nh = self.w_1(torch.cat([pos_emb, seq_h], -1))
+        nh = torch.tanh(nh)
+        nh = torch.sigmoid(self.glu1(nh) + self.glu2(hs))
+        beta = torch.matmul(nh, self.w_2)
+        beta = beta * mask
+        select = torch.sum(beta * seq_h, 1)
+        return select
+
+    def generate_sess_emb_npos(self,item_embedding, session_item, session_len, reversed_sess_item, mask):
+        zeros = torch.cuda.FloatTensor(1, self.emb_size).fill_(0)
+        # zeros = torch.zeros(1, self.emb_size)
+        item_embedding = torch.cat([zeros, item_embedding], 0)
+        get = lambda i: item_embedding[reversed_sess_item[i]]
+        seq_h = torch.cuda.FloatTensor(self.batch_size, list(reversed_sess_item.shape)[1], self.emb_size).fill_(0)
+        # seq_h = torch.zeros(self.batch_size, list(reversed_sess_item.shape)[1], self.emb_size)
+        for i in torch.arange(session_item.shape[0]):
+            seq_h[i] = get(i)
+        hs = torch.div(torch.sum(seq_h, 1), session_len)
+        mask = mask.float().unsqueeze(-1)
+        len = seq_h.shape[1]
+        # pos_emb = self.pos_embedding.weight[:len]
+        # pos_emb = pos_emb.unsqueeze(0).repeat(self.batch_size, 1, 1)
+
+        hs = hs.unsqueeze(-2).repeat(1, len, 1)
+        nh = seq_h
         nh = torch.tanh(nh)
         nh = torch.sigmoid(self.glu1(nh) + self.glu2(hs))
         beta = torch.matmul(nh, self.w_2)
@@ -153,7 +178,10 @@ class DHCN(Module):
 
     def forward(self, session_item, session_len, D, A, reversed_sess_item, mask):
         item_embeddings_hg = self.HyperGraph(self.adjacency, self.embedding.weight)
-        sess_emb_hgnn = self.generate_sess_emb(item_embeddings_hg, session_item, session_len, reversed_sess_item, mask)
+        if self.dataset == 'Tmall':
+            sess_emb_hgnn = self.generate_sess_emb_npos(item_embeddings_hg, session_item, session_len, reversed_sess_item, mask)
+        else:
+            sess_emb_hgnn = self.generate_sess_emb(item_embeddings_hg, session_item, session_len, reversed_sess_item, mask)
         session_emb_lg = self.LineGraph(self.embedding.weight, D, A, session_item, session_len)
         con_loss = self.SSL(sess_emb_hgnn, session_emb_lg)
         return item_embeddings_hg, sess_emb_hgnn, self.beta*con_loss
